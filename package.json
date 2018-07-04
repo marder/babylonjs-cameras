@@ -1,6 +1,6 @@
 {
   "name": "@rammbulanz/babylonjs-cameras",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "lib/index.js",
   "repository": "https://github.com/marder/babylonjs-cameras",
   "author": "marder <iwashier@gmail.com>",
