@@ -1,0 +1,19 @@
+{
+   "compilerOptions": {
+      "target": "esnext",
+      "module": "esnext",
+      "sourceMap": true,
+      "declaration": true,
+      "moduleResolution": "node",
+      "types": [
+         "babylonjs"
+      ]
+   },
+   "include": [
+      "lib/**/*.ts"
+   ],
+   "exclude": [
+      "node_modules",
+      "**/*.d.ts"
+   ]
+}

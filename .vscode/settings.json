@@ -1,0 +1,15 @@
+{
+   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": true,
+   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": true,
+   "editor.tabSize": 3,
+   "files.exclude": {
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true,
+      "**/lib/**/*.js": true,
+      "**/lib/**/*.js.map": true,
+      "**/lib/**/*.d.ts": true
+   }
+}

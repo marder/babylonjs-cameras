@@ -1,0 +1,24 @@
+{
+  "name": "@rammbulanz/babylonjs-cameras",
+  "version": "1.0.0",
+  "main": "lib/index.js",
+  "repository": "https://github.com/marder/babylonjs-cameras",
+  "author": "marder <iwashier@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.js.map",
+    "lib/**/*.d.ts"
+  ],
+  "dependencies": {
+    "babylonjs": "^3.2.0",
+    "cannon": "^0.6.2",
+    "earcut": "^2.1.3",
+    "oimo": "^1.0.9"
+  },
+  "devDependencies": {
+    "awesome-typescript-loader": "^5.2.0",
+    "typescript": "^2.9.2",
+    "webpack": "^4.14.0"
+  }
+}
