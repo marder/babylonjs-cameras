@@ -1,4 +1,4 @@
-import { Camera, ICameraInput, UniversalCamera, PointerInfo, PointerEventTypes, Plane, Matrix, Vector3, Observer, FreeCamera } from "babylonjs";
+import { ICameraInput, PointerInfo, PointerEventTypes, Plane, Matrix, Vector3, Observer, FreeCamera } from "babylonjs";
 
 export class MousePanInputs implements ICameraInput<FreeCamera>  {
 
