@@ -1,127 +1,126 @@
-import { ICameraInput, PointerInfo, PointerEventTypes, Plane, Matrix, Vector3, Observer, FreeCamera } from "babylonjs";
+import { ICameraInput, FreeCamera, PointerInfo, EventState, Observer, PointerEventTypes, Plane, Vector3, Matrix, Ray, Vector2 } from 'babylonjs'
 
-export class MousePanInputs implements ICameraInput<FreeCamera>  {
+export class FreeCameraCadMouseInput implements ICameraInput<FreeCamera> {
 
-	private _pointerObserver: Observer<PointerInfo>
+	// Default left button
+	MOUSE_PAN = [0, 1];
 
-	public camera: FreeCamera;
-	public checkInputs?: () => void;
-	public mouseButton = 0;
+	camera: FreeCamera;
 
-	/**
-	 * This plane is used, to locate the pointed coordinate.
-	 * It can be overwritten, but take in mind. It's normal should point to camera.
-	 */
-	public plane = Plane.FromPositionAndNormal(Vector3.Zero(), Vector3.Up());
+	_pointerInput: (e: PointerInfo, s: EventState) => void
+	_observer: Observer<PointerInfo>
 
-	/**
-	 * Attach `pointerdown`, `pointerup`, `pointermove` events to `element`
-	 * @param element The element, where the events will be attached
-	 * @param noPreventDefault 
-	 */
-	public attachControl( element: HTMLElement, noPreventDefault?: boolean ) {
-
-		if ( this._pointerObserver )
-			return;
-
-		const scene = this.camera.getScene();
-		
-		this._pointerObserver = scene.onPointerObservable.add(this.onPointer.bind(this));
-
+	getClassName(): string {
+		return "FreeCameraCadMouseInput";
 	}
-	public detachControl( element: HTMLElement ) {
+	getSimpleName(): string {
+		return "cad-mouse";
+	}
 
-		if (this._pointerObserver) {
-			let scene = this.camera.getScene();
-			scene.onPointerObservable.remove(this._pointerObserver);
+	attachControl(element: HTMLElement) {
+
+		var engine = this.camera.getEngine();
+		var scene = this.camera.getScene();
+		var ray = new Ray(Vector3.Zero(), Vector3.Zero());
+
+		if (!this._pointerInput) {
+
+			let _panEnabled = false;
+			/** Parallel plane to camera */
+			let _pointerPlane = Plane.FromPositionAndNormal(Vector3.Zero(), Vector3.Up());
+			/** Position of cursor, when panning started */
+			let _startPointer = new Vector2(0, 0);
+			/** Position of cursor in previous call */
+			let _previousPointer = new Vector2(0, 0);
+			/** Current cursor position */
+			let _currentPointer = new Vector2(0, 0);
+			/** The pointer position on the plane on pointer down */
+			let _startTarget = Vector3.Zero();
+			/** The pointer position on the plane on last pointer move */
+			let _previousTarget = Vector3.Zero();
+			/** The current pointer position on the plane */
+			let _currentTarget = Vector3.Zero();
+			/** Position of camera, when panning started. */
+			let _startCameraPosition = Vector3.Zero();
+
+			const cast = (p: Vector2, target: Vector3) => {
+				const ray = scene.createPickingRay(p.x, p.y, Matrix.Identity(), this.camera);
+				const rayPlaneDistance = ray.intersectsPlane(_pointerPlane);
+				const hits = rayPlaneDistance > 0.001
+				return ray.origin.addToRef(ray.direction.scale(rayPlaneDistance), target);
+			}
+
+			// Define the pointer observable callback
+			this._pointerInput = p => {
+
+				let evt = <PointerEvent>p.event;
+
+				if (engine.isInVRExclusivePointerMode) {
+					return;
+				}
+
+				_currentPointer = new Vector2(evt.offsetX, evt.offsetY);)
+
+				let srcElement = <HTMLElement>(evt.srcElement || evt.target);
+
+				if (p.type == PointerEventTypes.POINTERDOWN) {
+
+					if (this.checkPanInput(evt)) {
+						srcElement.setPointerCapture(evt.pointerId);
+						_panEnabled = true;
+						_startTarget.copyFrom(_currentTarget);
+						_startPointer.copyFrom(_currentPointer);
+						_startCameraPosition.copyFrom(this.camera.position);
+					}
+
+				} else if (p.type == PointerEventTypes.POINTERMOVE) {
+
+					if (!engine.isPointerLock) {
+
+						if (_panEnabled) {
+
+							cast(_currentPointer, _currentTarget);
+							cast(_startPointer, _startTarget)
+
+							const vector = _currentTarget.subtract(_startTarget);
+							this.camera.position = _startCameraPosition.add(vector.negate());
+						}
+
+					}
+
+				} else if (p.type == PointerEventTypes.POINTERUP) {
+
+					if (this.checkPanInput(evt))
+						_panEnabled = false;
+					srcElement.releasePointerCapture(evt.pointerId);
+
+				}
+
+				// Update cache
+				_previousPointer.copyFrom(_currentPointer);
+				_previousTarget.copyFrom(_currentTarget);
+
+			}
+
 		}
 
+		this._observer = this.camera.getScene().onPointerObservable.add(this._pointerInput, PointerEventTypes.POINTERDOWN | PointerEventTypes.POINTERUP | PointerEventTypes.POINTERMOVE);
+
 	}
 
-
-	// Pointer properties
-	protected _pointerDown = false;
-	protected _firstPoint: Vector3;
-	protected _lastPoint: Vector3;
-	protected _currentPoint: Vector3;
-
-	private onPointer(pointerInfo: PointerInfo) {
-		switch (pointerInfo.type) {
-			case PointerEventTypes.POINTERDOWN: return this.beginPan(pointerInfo.event as PointerEvent);
-			case PointerEventTypes.POINTERMOVE: return this.onPointerMove(pointerInfo.event as PointerEvent);
-			case PointerEventTypes.POINTERUP: return this.endPan(pointerInfo.event as PointerEvent);
+	detachControl(element: HTMLElement) {
+		if (this._observer && element) {
+			this.camera.getScene().onPointerObservable.remove(this._observer);
+			this._observer = null;
 		}
 	}
 
-	private beginPan( event: PointerEvent ) {
-
-		if ( event.button == this.mouseButton ) {
-
-			this._pointerDown = true;
-			this._lastPoint = this._firstPoint = this.getPointOnPlane( event );
-
-		}
+	checkInputs() {
 
 	}
-	private endPan( event: PointerEvent ) {
-
-		if ( event.button == this.mouseButton ) {
-
-			// Last move event
-			this.onPointerMove(event);
-
-			this._pointerDown = false;
-		}
-
-	}
-	private onPointerMove( event: PointerEvent ) {
-
-		// Instant return, if pointer isn't down.
-		if ( !this._pointerDown )
-			return;
-
-
-		let plane = this.plane;
-
-		if ( !plane ) {
-			console.error( "Plane is not defined." );
-			return;
-		}
-
-		// Calculate new points
-
-		this._currentPoint = this.getPointOnPlane( event );
-
-		let translation = this._lastPoint.subtract( this._currentPoint );
-		let matrix = Matrix.Translation( translation.x, translation.y, translation.z );
-		this.camera.position = Vector3.TransformCoordinates( this.camera.position, matrix );
-
-		console.log({
-			translation,
-			lastPoint: this._lastPoint,
-			currentPoint: this._currentPoint
-		})
-
-		// Update remembered points
-
-		this._lastPoint = this._currentPoint;
-
+	checkPanInput(evt: PointerEvent) {
+		return this.MOUSE_PAN.indexOf(evt.button) > -1;
 	}
 
-
-	// Helper functions
-	private getPointOnPlane( event: PointerEvent ) {
-		const scene = this.camera.getScene();
-		const ray = scene.createPickingRay( event.offsetX, event.offsetY, Matrix.Identity(), this.camera );
-		const d = ray.intersectsPlane( this.plane );
-		return ray.origin.add( ray.direction.scale( d ) );
-	}
-
-	public getClassName(): string {
-		return "FinePanInputs";
-	}
-	public getSimpleName(): string {
-		return "mousepan";
-	}
 
 }
